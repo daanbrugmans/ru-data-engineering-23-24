@@ -40,11 +40,11 @@ If my project proposal and/or data sources are considered inappropriate for the 
 I will then search for data sources from a different domain.
 
 For the Data Engineering project, I would like to build a pipeline that serves data to data scientists working on a beer recommendation system.
-The pipeline should aggregate from multiple sources that serve data(sets) of beer and their attributes.
-Examples of attributes are name, brewery, alcohol by volume (ABV), international bitterness unit (IBU), category/style, textual description, flavor profile, and personal ratings.
-The pipeline should serve two sets of data to the data scientists: a big dataset containing beer attributes from varying publicly available sources that can be updated regularly, and a small dataset of an end user of the beer recommendation system that includes personal ratings of beers they have had before.
-These datasets will be served as tabular data.
-The data scientists can then use the ratings of the end user and the data of both datasets to build a system that can recommend beers from the big dataset to the end user's non-specified preferences, that can be extracted from the data using machine learning.
+The pipeline should collect from multiple sources that serve data(sets) of beer and their attributes.
+Examples of attributes that should be served to the data scientists are name, brewery, alcohol by volume (ABV), international bitterness unit (IBU), category/style, textual description, flavor profile, and personal ratings.
+The pipeline should serve two sets of data to the data scientists: a big general dataset containing beer data from varying publicly available sources that can (and should) be updated, and a small dataset of an end user of the beer recommendation system that includes personal ratings of beers the end user has had before.
+These datasets will be served tabular.
+The data scientists can then use the ratings of the end user and the data of both datasets to build a system that can recommend beers from the big dataset to the end user's non-specified preferences, which can be extracted from the end user's data using machine learning.
 A realistic use case for such a recommendation system could exist for social media platforms revolving around beer and online retailers of beer that can use the system to increase revenue and beer sales.
 
 For the small dataset of an end user, I will provide my own data of beer ratings that I have collected on \citeauthor{untappd}.
@@ -52,7 +52,7 @@ For the small dataset of an end user, I will provide my own data of beer ratings
 I participate in \citeauthor{untappd} and have collected a dataset of these check-ins with ratings.
 I can access an export of my check-in data per GDPR request.
 Although I do not know yet which attributes are included for certain in this export, I expect they include name, category/style, brewery, check-in location, purchasing location, flavor profile experienced by the end user, rating, and possibly timestamp.
-The data will be provided in CSV format and contain almost 400 check-ins, slightly over 300 of which being unique.
+The data will be provided in CSV format and contain almost 400 check-ins, slightly over 300 of which being unique, so while I do not expect for missing data to be a major issue, duplicates will be more prominent.
 
 For the big dataset containing beers that can be recommended to an end user, I have found multiple data sources of beer attributes.
 I want to aggregate the data from these sources into a single database of beers. 
@@ -65,8 +65,17 @@ I want to make use of the following data sources:
     Although it currently serves an older, static dataset, \citeauthor{openbeerdb} is planning on updating this dataset in the future, possibly including regular updates to the data.
     The \citeauthor{openbeerdb} data is served as a set of \texttt{.sql} files that will create tables for beer, breweries, categories, and styles (finer granularity categories), and insert them with data.
     The resulting SQL database contains most attributes I would want to serve to the data scientists, with the exception of flavor profile.
-    \item 
+    \item \citet{philipperemy} serves a static collection of beer data scraped from \citet{brewerydb}.
+    The dataset contains over 30,000 beers stored as JSON files, where every JSON file is a collection of beers.
+    The records contain almost all the data that I need, plus a lot more that I do not need, and seem quite complete.
+    The dataset size is ~80MBs.
+    \item \citet{evanhallmark} provides a dataset of beers, breweries, and beer reviews on Kaggle.
+    However, from Kaggle's preview, I have already noticed it contains several data quality issues: no documentation, missing data, strings that represent missing data, and the file for the reviews is over 2GBs.
+    The dataset consists of three CSV files, and the CSV for beer records contains almost 300,000 unique names.
 \end{itemize}
+
+Although I have access to more data sources, I expect that this proposal fits nicely into the scope of the Data Engineering project.
+While only \citeauthor{evanhallmark}'s dataset shows major data quality issues on the surface, I expect that I will encounter more issues when aggregating data sources.
 
 \bibliographystyle{ACM-Reference-Format}
 \def\bibfont{\small} % comment this line for a smaller fontsize
