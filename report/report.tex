@@ -47,7 +47,7 @@ For the small dataset of an end user, I will provide my own data of beer ratings
 \citet{untappd} is a social medium where users rate beers they try and share their ratings with friends by registering their rating on the medium ("check-in").
 I participate in \citeauthor{untappd} and have collected a dataset of these check-ins with ratings.
 I can access an export of my check-in data per GDPR request.
-Although I do not know yet which attributes are included for certain in this export, I expect they include name, category/style, brewery, check-in location, purchasing location, flavor profile experienced by the end user, rating, and possibly timestamp.
+This export contains information about a beer's name, category/style, brewery, check-in location, purchasing location, flavor profile experienced by the end user, rating, and timestamp.
 The data will be provided in CSV format and contain almost 400 check-ins, slightly over 300 of which being unique, so while I do not expect for missing data to be a major issue, duplicates will be more prominent.
 
 For the big dataset containing beers that can be recommended to an end user, I have found multiple data sources of beer attributes.
@@ -74,6 +74,37 @@ Although I have access to more data sources, I expect that this proposal fits ni
 While only \citeauthor{evanhallmark}'s dataset shows major data quality issues on the surface, I expect that I will encounter more issues when aggregating data sources.
 
 \section{Data Quality}
+Before wrangling the data, I will talk about the data quality of the various data sources.
+% Zeg of je een duidelijke primary key hebt gevonden, en of het duidelijk is welke kolommen tussen datasets semantisch hetzelfde zijn
+
+\subsection{Untappd}
+The Untappd data contains all of the features I need.
+Most of these features do not have missing data: beer name, brewery name, beer type, ABV, IBU, and personal rating have 0\% data missing.
+The flavor profiles experienced by the user have 1\% missing data, but since that's so little, I expect to be able to handle that issue easily.
+More problematic is the feature for textual descriptions: 77\% of the check-ins do not have a textual comment, and of the remaining 23\%, not all comments are semantically relevant to the beer itself.
+I expect that this feature is not one I can make good use of.
+
+Based on box-and-whiskers-plot and barplot visualizations, seem to be no outliers present in the data.
+Two features are units of measure, ABV and IBU, and they are formatted correctly: ABV as a percentage, and IBU as a float.
+The check-in timestamp is formatted to the standard ISO format, and floats use periods as the decimal mark.
+The dataset is in an unnormalized form.
+
+Although the Untappd data provides a unique ID for each record, for our purposes, that is not the primary key of our data: that would be beer name + brewery name.
+We will assume that a brewery does not make multiple different beers that share the same name.
+Given this primary key, the Untappd dataset consists of 18\% duplicates.
+This can be fixed during data wrangling: duplicates are different check-ins of the same beer.
+Features like beer name and brewery will be consistent across duplicates.
+For some features, we must apply some transformation. 
+For example, personal ratings can be averaged, and flavor profiles of all check-ins can be merged into one list.
+
+\subsection{OpenBeerDB}
+
+\section{Data Wrangling}
+
+\subsection{Untappd}
+% Wrangle the beer type into two features: general beer category and specific beer style
+% You can wrangle the flavor profile lists into features: every flavor in the list becomes a boolean feature. 
+%   If a beer has that flavor in its flavor profile, the value is true, otherwise false.
 
 \bibliographystyle{ACM-Reference-Format}
 \def\bibfont{\small} % comment this line for a smaller fontsize
