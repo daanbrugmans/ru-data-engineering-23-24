@@ -65,13 +65,10 @@ I want to make use of the following data sources:
     The dataset contains over 30,000 beers stored as JSON files, where every JSON file is a collection of beers.
     The records contain almost all the data that I need, plus a lot more that I do not need, and seem quite complete.
     The dataset size is ~80MBs.
-    \item \citet{evanhallmark} provides a dataset of beers, breweries, and beer reviews on Kaggle.
-    However, from Kaggle's preview, I have already noticed it contains several data quality issues: no documentation, missing data, strings that represent missing data, and the file for the reviews is over 2GBs.
-    The dataset consists of three CSV files, and the CSV for beer records contains almost 300,000 unique names.
+    % \item \citet{evanhallmark} provides a dataset of beers, breweries, and beer reviews on Kaggle.
+    % However, from Kaggle's preview, I have already noticed it contains several data quality issues: no documentation, missing data, strings that represent missing data, and the file for the reviews is over 2GBs.
+    % The dataset consists of three CSV files, and the CSV for beer records contains almost 300,000 unique names.
 \end{itemize}
-
-Although I have access to more data sources, I expect that this proposal fits nicely into the scope of the Data Engineering project.
-While only \citeauthor{evanhallmark}'s dataset shows major data quality issues on the surface, I expect that I will encounter more issues when aggregating data sources.
 
 \section{Data Quality}
 Before wrangling the data, I will talk about the data quality of the various data sources.
@@ -99,9 +96,38 @@ For example, personal ratings can be averaged, and flavor profiles of all check-
 
 \subsection{OpenBeerDB}
 
-\section{Data Wrangling}
+\subsection{BreweryDB}
 
-\subsection{Untappd}
+\section{Data Wrangling}
+Preferably, our pipeline should serve two different sets of data: the small personal dataset with a user's ratings, and the big general dataset to query beers from.
+We will store these datasets as parquet files.
+These datasets should share the same features, with the exception of the personal rating for the personal dataset.
+This list of features should be as follows:
+\begin{itemize}
+    \item Beer Name
+    \item Brewery Name
+    \item Beer Category (General)
+    \item Beer Type (Specific)
+    \item Alcohol By Volume (ABV)
+    \item International Bitterness Unit (IBU)
+    \item Textual Description
+    \item Flavor Profile
+\end{itemize}
+We want to represent these features in a tabular manner.
+Most of these features fit this structure.
+However, flavor profiles pose a problem, as they are currently stored as a list for each row of varying size.
+My proposed solution is to wrangle the flavors into binary features: every new flavor found in a flavor profile becomes a feature.
+If a beer's flavor profile contains that flavor, the feature is 1, otherwise it is 0.
+
+All data sources are currently represented in a tabular form (\citeauthor{untappd}, \citeauthor{openbeerdb}) or a semi-structured form (\citeauthor{philipperemy}).
+The semi-structured data is represented using multiple JSON files of the same shape.
+I will wrangle it into a tabular format using Python and Pandas, applying further operations on dataframes.
+
+I want to join the datasets by \citet{openbeerdb} and \citet{philipperemy}, assuming a primary key of Beer Name + Brewery Name.
+However, this is not possible, because \citeauthor{philipperemy}'s dataset does not contain information about a beer's brewery.
+% TODO keep writing
+
+% \subsection{Untappd}
 % Wrangle the beer type into two features: general beer category and specific beer style
 % You can wrangle the flavor profile lists into features: every flavor in the list becomes a boolean feature. 
 %   If a beer has that flavor in its flavor profile, the value is true, otherwise false.

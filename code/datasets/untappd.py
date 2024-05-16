@@ -9,6 +9,6 @@ class UntappdDataset:
         else:
             cwd = Path.cwd()
         
-        self.path_to_csv = Path.joinpath(cwd, "data", "untappd", "check-ins.csv")
+        self.path_to_csv = Path.joinpath(cwd, "data", "raw", "untappd", "check-ins.csv")
         self.df = pd.read_csv(self.path_to_csv)
         
