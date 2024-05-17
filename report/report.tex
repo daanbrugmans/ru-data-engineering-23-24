@@ -22,7 +22,7 @@
 \setcopyright{none}
 
 \begin{document}
-\title{Data Engineering --- Intermediate Report 2}
+\title{Data Engineering --- Intermediate Report 3}
 
 \author{Daan Brugmans (s1080742)}
 \affiliation{%
@@ -115,22 +115,30 @@ This list of features should be as follows:
 \end{itemize}
 We want to represent these features in a tabular manner.
 Most of these features fit this structure.
-However, flavor profiles pose a problem, as they are currently stored as a list for each row of varying size.
-My proposed solution is to wrangle the flavors into binary features: every new flavor found in a flavor profile becomes a feature.
-If a beer's flavor profile contains that flavor, the feature is 1, otherwise it is 0.
+However, flavor profiles pose a problem, as they are currently stored as a list of varying size for every record in the \citeauthor{untappd} dataset.
+My proposed solution is to wrangle the flavors into binary features: every flavor found in a flavor profile becomes a feature.
+If a beer's flavor profile contains that flavor, the feature's value is 1, otherwise it is 0.
+The main problem with this approach is that these flavor features are only stored in the \citeauthor{untappd} data.
+If we want to use the features for the general dataset, we will have to extract that knowledge somehow.
+For example, it could be collected from the \citeauthor{untappd} website, or the data scientists could use NLP techniques on a beer's name and description to fill in the features.
+Regardless, making full use of the flavor features will require additional work.
 
 All data sources are currently represented in a tabular form (\citeauthor{untappd}, \citeauthor{openbeerdb}) or a semi-structured form (\citeauthor{philipperemy}).
 The semi-structured data is represented using multiple JSON files of the same shape.
 I will wrangle it into a tabular format using Python and Pandas, applying further operations on dataframes.
+Since \citeauthor{openbeerdb}'s data is served as a set of SQL files that create tables with records to query, I will use SQL to get the features that I need, and wrangle those features using Python.
+I can perform this process in bulk.
 
 I want to join the datasets by \citet{openbeerdb} and \citet{philipperemy}, assuming a primary key of Beer Name + Brewery Name.
 However, this is not possible, because \citeauthor{philipperemy}'s dataset does not contain information about a beer's brewery.
-% TODO keep writing
+Although it would be possible to create a program that would try to scrape brewery information from \citeauthor{untappd}, for now, I will refrain from building such a program due to project scope constraints.
+Such a scraper could be worth the effort, though, since I could use it to fill in missing data, and standardize existing data to \citeauthor{untappd}'s standards.
+For now, my approach in joining this data shall be that I remove records from \citeauthor{philipperemy} with duplicate names, then join on Beer Name.
 
-% \subsection{Untappd}
-% Wrangle the beer type into two features: general beer category and specific beer style
-% You can wrangle the flavor profile lists into features: every flavor in the list becomes a boolean feature. 
-%   If a beer has that flavor in its flavor profile, the value is true, otherwise false.
+Once the data for the general dataset has been joined, I will have to apply additional operations, because the different data sources have different possible sets of values for the same feature.
+The \citeauthor{untappd} dataset only has one column about beer category, but it actually contains both beer category and beer type: beer type is the full string, while beer category is the substring prior to the "-".
+The other datasets already have two different features for beer category and type, but sometimes use different names for the same category/type.
+Changing these values to be the same as the one in the personal dataset would improve data quality.
 
 \bibliographystyle{ACM-Reference-Format}
 \def\bibfont{\small} % comment this line for a smaller fontsize
