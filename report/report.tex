@@ -5,6 +5,8 @@
 \usepackage{color}
 \usepackage{enumitem}
 \usepackage{multirow}
+\usepackage{graphicx}
+\usepackage{hyperref}
 \hyphenation{Media-Eval}
 
 % DOI
@@ -21,8 +23,10 @@
 
 \setcopyright{none}
 
+\graphicspath{{./images}}
+
 \begin{document}
-\title{Data Engineering --- Intermediate Report 3}
+\title{Data Engineering --- Intermediate Report 4}
 
 \author{Daan Brugmans (s1080742)}
 \affiliation{%
@@ -32,7 +36,29 @@
 }
 \email{daan.brugmans@ru.nl}
 
+\begin{abstract}
+    This document is the final report for the Radboud University's Data Engineering course.
+    Every section was written consecutively as a weekly assignment.
+    The report describes the design and construction of a data pipeline.
+    The code for the implementation of the pipeline described here can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24}
+\end{abstract}
+
 \maketitle
+% \begin{table}
+%     \centering
+%     \begin{tabular}{cols}
+        
+%     \end{tabular}
+%     \caption{}
+%     \label{tab:}
+% \end{table}
+
+% \begin{figure}
+%     \centering
+%     \includegraphics[width=0.9\textwidth]{}
+%     \caption{}
+%     \label{fig:}
+% \end{figure}
 
 \section{Data \& Project Proposal}
 For the Data Engineering project, I would like to build a pipeline that serves data to data scientists working on a beer recommendation system.
@@ -43,45 +69,66 @@ These datasets will be served tabular.
 The data scientists can then use the ratings of the end user and the data of both datasets to build a system that can recommend beers from the big dataset to the end user's non-specified preferences, which can be extracted from the end user's data using machine learning.
 A realistic use case for such a recommendation system could exist for social media platforms revolving around beer and online retailers of beer that can use the system to increase revenue and beer sales.
 
+% Maybe????
+Due to the scope of the Data Engineering project, I will implement only the parts of the pipeline that are needed to serve the small dataset of an end user.
+Although this requires that I construct a complete and working pipeline, I will move the focus away from data cleaning and joining, for example.
+
 For the small dataset of an end user, I will provide my own data of beer ratings that I have collected on \citeauthor{untappd}.
 \citet{untappd} is a social medium where users rate beers they try and share their ratings with friends by registering their rating on the medium ("check-in").
 I participate in \citeauthor{untappd} and have collected a dataset of these check-ins with ratings.
-I can access an export of my check-in data per GDPR request.
+I have access to an export of my check-in data via a GDPR request.
 This export contains information about a beer's name, category/style, brewery, check-in location, purchasing location, flavor profile experienced by the end user, rating, and timestamp.
 The data will be provided in CSV format and contain almost 400 check-ins, slightly over 300 of which being unique, so while I do not expect for missing data to be a major issue, duplicates will be more prominent.
 
-For the big dataset containing beers that can be recommended to an end user, I have found multiple data sources of beer attributes.
-I want to aggregate the data from these sources into a single database of beers. 
-Because my data sources serve data in varying formats, I expect that the aggregating of my data into a single collection will be a major challenge of the project.
-For example, I will have to make sure that all data uses the same formats and standards, that there are no duplicates due to beers being present in multiple sources, and that there will likely be missing data due to some data sources not storing certain attributes.
+% For the big dataset containing beers that can be recommended to an end user, I have found multiple data sources of beer attributes.
+% I want to aggregate the data from these sources into a single database of beers. 
+% Because my data sources serve data in varying formats, I expect that the aggregating of my data into a single collection will be a major challenge of the project.
+% For example, I will have to make sure that all data uses the same formats and standards, that there are no duplicates due to beers being present in multiple sources, and that there will likely be missing data due to some data sources not storing certain attributes.
 
-I want to make use of the following data sources:
-\begin{itemize}
-    \item \citet{openbeerdb} is an archive of beer data.
-    Although it currently serves an older, static dataset, \citeauthor{openbeerdb} is planning on updating this dataset in the future, possibly including regular updates to the data.
-    The \citeauthor{openbeerdb} data is served as a set of \texttt{.sql} files that will create tables for beer, breweries, categories, and styles (finer granularity categories), and insert them with data.
-    The resulting SQL database contains most attributes I would want to serve to the data scientists, with the exception of flavor profile.
-    \item \citet{philipperemy} serves a static collection of beer data scraped from \citet{brewerydb}.
-    The dataset contains over 30,000 beers stored as JSON files, where every JSON file is a collection of beers.
-    The records contain almost all the data that I need, plus a lot more that I do not need, and seem quite complete.
-    The dataset size is ~80MBs.
+% I want to make use of the following data sources:
+% \begin{itemize}
+%     \item \citet{openbeerdb} is an archive of beer data.
+%     Although it currently serves an older, static dataset, \citeauthor{openbeerdb} is planning on updating this dataset in the future, possibly including regular updates to the data.
+%     The \citeauthor{openbeerdb} data is served as a set of \texttt{.sql} files that will create tables for beer, breweries, categories, and styles (finer granularity categories), and insert them with data.
+%     The resulting SQL database contains most attributes I would want to serve to the data scientists, with the exception of flavor profile.
+%     \item \citet{philipperemy} serves a static collection of beer data scraped from \citet{brewerydb}.
+%     The dataset contains over 30,000 beers stored as JSON files, where every JSON file is a collection of beers.
+%     The records contain almost all the data that I need, plus a lot more that I do not need, and seem quite complete.
+%     The dataset size is ~80MBs.
     % \item \citet{evanhallmark} provides a dataset of beers, breweries, and beer reviews on Kaggle.
     % However, from Kaggle's preview, I have already noticed it contains several data quality issues: no documentation, missing data, strings that represent missing data, and the file for the reviews is over 2GBs.
     % The dataset consists of three CSV files, and the CSV for beer records contains almost 300,000 unique names.
-\end{itemize}
+% \end{itemize}
 
 \section{Data Quality}
 Before wrangling the data, I will talk about the data quality of the various data sources.
 % Zeg of je een duidelijke primary key hebt gevonden, en of het duidelijk is welke kolommen tussen datasets semantisch hetzelfde zijn
+Quantitative measures of data quality were measured using code.
+A class called the \texttt{DataQualityAssessor} assesses the data's quality using a few metrics.
+A code snippet of this class can be found in figure \ref{fig:code_data_quality_assessor}.
+This class is used in a Jupyter notebook that allows easy visualizations of data distributions and qualities.
+This notebook can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24/blob/main/code/analysis.ipynb}
+
+\begin{figure*}
+    \centering
+    \includegraphics[width=0.9\textwidth]{code_data_quality_assessor.png}
+    \caption{A code snippet for the \href{https://github.com/daanbrugmans/ru-data-engineering-23-24/blob/main/code/data_quality/data_quality_assessor.py}{Data Quality Assessor}.}
+    \label{fig:code_data_quality_assessor}
+\end{figure*}
 
 \subsection{Untappd}
 The Untappd data contains all of the features I need.
 Most of these features do not have missing data: beer name, brewery name, beer type, ABV, IBU, and personal rating have 0\% data missing.
+
 The flavor profiles experienced by the user have 1\% missing data, but since that's so little, I expect to be able to handle that issue easily.
+The missing flavor profile data may be caused due to how a user selects flavors: although a user can select any combination of flavors from a set list, most users will often only select from the top 5 most chosen flavors for a beer, since \citeauthor{untappd} suggests those automatically.
+Flavors that are not in the top 5 require more user interaction, and many users will refrain from manually searching for specific flavors.
+This may mean that some beers with missing flavor profile data do have certain flavors as experienced by the user, but none of which being in the top 5 most chosen flavors, and the user did not manually search for the less common flavors.
+
 More problematic is the feature for textual descriptions: 77\% of the check-ins do not have a textual comment, and of the remaining 23\%, not all comments are semantically relevant to the beer itself.
 I expect that this feature is not one I can make good use of.
 
-Based on box-and-whiskers-plot and barplot visualizations, seem to be no outliers present in the data.
+Based on box-and-whiskers-plot and barplot visualizations, there seem to be no outliers present in the data.
 Two features are units of measure, ABV and IBU, and they are formatted correctly: ABV as a percentage, and IBU as a float.
 The check-in timestamp is formatted to the standard ISO format, and floats use periods as the decimal mark.
 The dataset is in an unnormalized form.
@@ -94,9 +141,9 @@ Features like beer name and brewery will be consistent across duplicates.
 For some features, we must apply some transformation. 
 For example, personal ratings can be averaged, and flavor profiles of all check-ins can be merged into one list.
 
-\subsection{OpenBeerDB}
+% \subsection{OpenBeerDB}
 
-\subsection{BreweryDB}
+% \subsection{BreweryDB}
 
 \section{Data Wrangling}
 Preferably, our pipeline should serve two different sets of data: the small personal dataset with a user's ratings, and the big general dataset to query beers from.
@@ -114,31 +161,36 @@ This list of features should be as follows:
     \item Flavor Profile
 \end{itemize}
 We want to represent these features in a tabular manner.
-Most of these features fit this structure.
+Most of these features already fit this structure.
 However, flavor profiles pose a problem, as they are currently stored as a list of varying size for every record in the \citeauthor{untappd} dataset.
-My proposed solution is to wrangle the flavors into binary features: every flavor found in a flavor profile becomes a feature.
+My proposed solution is to wrangle the flavors into binary features: every flavor found in any flavor profile becomes a feature.
 If a beer's flavor profile contains that flavor, the feature's value is 1, otherwise it is 0.
 The main problem with this approach is that these flavor features are only stored in the \citeauthor{untappd} data.
 If we want to use the features for the general dataset, we will have to extract that knowledge somehow.
 For example, it could be collected from the \citeauthor{untappd} website, or the data scientists could use NLP techniques on a beer's name and description to fill in the features.
 Regardless, making full use of the flavor features will require additional work.
 
-All data sources are currently represented in a tabular form (\citeauthor{untappd}, \citeauthor{openbeerdb}) or a semi-structured form (\citeauthor{philipperemy}).
-The semi-structured data is represented using multiple JSON files of the same shape.
-I will wrangle it into a tabular format using Python and Pandas, applying further operations on dataframes.
-Since \citeauthor{openbeerdb}'s data is served as a set of SQL files that create tables with records to query, I will use SQL to get the features that I need, and wrangle those features using Python.
-I can perform this process in bulk.
+The \citeauthor{untappd} dataset only has one column about beer category, but it actually contains both beer category and beer type: beer type is the full value, while beer category is the substring prior to the "-" (if it is present).
 
-I want to join the datasets by \citet{openbeerdb} and \citet{philipperemy}, assuming a primary key of Beer Name + Brewery Name.
-However, this is not possible, because \citeauthor{philipperemy}'s dataset does not contain information about a beer's brewery.
-Although it would be possible to create a program that would try to scrape brewery information from \citeauthor{untappd}, for now, I will refrain from building such a program due to project scope constraints.
-Such a scraper could be worth the effort, though, since I could use it to fill in missing data, and standardize existing data to \citeauthor{untappd}'s standards.
-For now, my approach in joining this data shall be that I remove records from \citeauthor{philipperemy} with duplicate names, then join on Beer Name.
+The \citeauthor{untappd} data source is currently represented in a tabular form and is stored in a CSV file.
+I will wrangle it into the desired representation using Python and Pandas, applying further operations on dataframes.
+Since all data is stored in a single CSV of manageable size, I can perform this process in bulk.
+% All data sources are currently represented in a tabular form (\citeauthor{untappd}, \citeauthor{openbeerdb}) or a semi-structured form (\citeauthor{philipperemy}).
+% The semi-structured data is represented using multiple JSON files of the same shape.
+% I will wrangle it into a tabular format using Python and Pandas, applying further operations on dataframes.
+% Since \citeauthor{openbeerdb}'s data is served as a set of SQL files that create tables with records to query, I will use SQL to get the features that I need, and wrangle those features using Python.
+% I can perform this process in bulk.
 
-Once the data for the general dataset has been joined, I will have to apply additional operations, because the different data sources have different possible sets of values for the same feature.
-The \citeauthor{untappd} dataset only has one column about beer category, but it actually contains both beer category and beer type: beer type is the full string, while beer category is the substring prior to the "-".
-The other datasets already have two different features for beer category and type, but sometimes use different names for the same category/type.
-Changing these values to be the same as the one in the personal dataset would improve data quality.
+% I want to join the datasets by \citet{openbeerdb} and \citet{philipperemy}, assuming a primary key of Beer Name + Brewery Name.
+% However, this is not possible, because \citeauthor{philipperemy}'s dataset does not contain information about a beer's brewery.
+% Although it would be possible to create a program that would try to scrape brewery information from \citeauthor{untappd}, for now, I will refrain from building such a program due to project scope constraints.
+% Such a scraper could be worth the effort, though, since I could use it to fill in missing data, and standardize existing data to \citeauthor{untappd}'s standards.
+% For now, my approach in joining this data shall be that I remove records from \citeauthor{philipperemy} with duplicate names, then join on Beer Name.
+
+% Once the data for the general dataset has been joined, I will have to apply additional operations, because the different data sources have different possible sets of values for the same feature.
+% The \citeauthor{untappd} dataset only has one column about beer category, but it actually contains both beer category and beer type: beer type is the full value, while beer category is the substring prior to the "-" (if it is present).
+% The other datasets already have two different features for beer category and type, but sometimes use different names for the same category/type.
+% Changing these values to be the same as the one in the personal dataset would improve data quality.
 
 \bibliographystyle{ACM-Reference-Format}
 \def\bibfont{\small} % comment this line for a smaller fontsize
