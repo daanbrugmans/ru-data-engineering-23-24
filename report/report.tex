@@ -192,6 +192,26 @@ Since all data is stored in a single CSV of manageable size, I can perform this 
 % The other datasets already have two different features for beer category and type, but sometimes use different names for the same category/type.
 % Changing these values to be the same as the one in the personal dataset would improve data quality.
 
+\section{Data Serving}
+Serving of the data should be kept simple and designed to fit the stakeholders' needs.
+Since these stakeholders are data scientists that want to have full access to all data, and since the data should not be accessible to the public, an API does not seem to be a good fit.
+Currently, there is also no business logic that should be implemented, and the dataset size is small-scale and very manageable, so a QL API seems like an overengineered design for the current use case.
+Since the data is personalized in nature, we should serve it with precautions and with as little data that could trace back to a person's identity.
+
+A single parquet file should fit the data scientists' needs and would be preferred over CSV, but if the data scientists cannot perform their work with a parquet file, the data can be served as a CSV instead.
+Assuming that the business can and is willing to cover the costs, serving the data using AWS S3 would be preferred over self-hosted alternatives, for the sake of the data lifecycle and infrastructure management.
+
+Currently, the only data served is a small bulk file of the personal end user data of a single \citeauthor{untappd} user, which fits the serving design described above.
+However, in the future, there may be many users whose check-ins we want to analyze.
+If this number grows to be very big, we may want to partition the personal user data.
+I propose that this partitioning is performed by a user's region/country.
+This is because where a user lives has a major impact on what beers they may have access to; recommending local beers from the USA generally does not fit the needs of a German.
+We should then also perform partitioning by region/country for the big general dataset, which is more likely to grow to a size too large for a single partition.
+By using this partitioning scheme, we can recommend beers from the regions where people live, which makes it more likely that they can act upon (purchase) the recommendations.
+
+If the size of the collected data is approaching a level where simply loading a single parquet file is not feasible anymore, only then should we consider implementing an API.
+Such an API can map onto the partitions, serving a partition of the data for the region/country specified.
+
 \bibliographystyle{ACM-Reference-Format}
 \def\bibfont{\small} % comment this line for a smaller fontsize
 \bibliography{refs.bib} 
