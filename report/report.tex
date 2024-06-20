@@ -1,4 +1,13 @@
-\documentclass[sigconf, natbib=true]{acmart}
+\documentclass[sigconf]{acmart}
+
+\setcopyright{none}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{} 
+
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{lipsum}
+
 \usepackage{float}
 \usepackage{booktabs} % For formal tables
 \usepackage{url}
@@ -7,108 +16,104 @@
 \usepackage{multirow}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\hyphenation{Media-Eval}
 
-% DOI
-\acmDOI{}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 
-% ISBN
-\acmISBN{}
-
-\settopmatter{printacmref=false}
-
-\acmConference[DE'23-'24]{Data Engineering}{Radboud University}{Nijmegen, Netherlands} 
-\acmYear{2024}
-\copyrightyear{2024}
-
-\setcopyright{none}
-
-\graphicspath{{./images}}
-
-\begin{document}
-\title{Data Engineering --- Intermediate Report 4}
-
-\author{Daan Brugmans (s1080742)}
-\affiliation{%
-    \institution{Radboud University} 
-    \city{Nijmegen}
-    \country{Netherlands}
+\lstset{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
 }
-\email{daan.brugmans@ru.nl}
 
+\acmConference[Data Engineering]{}{June 2024}{Radboud University, Nijmegen}
+\acmDOI{}
+\acmISBN{}
+\acmYear{}
+\acmSubmissionID{}
+
+%%
+%% end of the preamble, start of the body of the document source.
+\begin{document}
+
+%%
+%% The "title" command has an optional parameter,
+%% allowing the author to define a "short title" to be used in page headers.
+\title[]{Data Engineering --- Final Report}
+
+%%
+%% The "author" command and its associated commands are used to define
+%% the authors and their affiliations.
+\author{Daan Brugmans}
+
+%%
+%% By default, the full list of authors will be used in the page
+%% headers. Often, this list is too long, and will overlap
+%% other information printed in the page headers. This command allows
+%% the author to define a more concise list
+%% of authors' names for this purpose.
+\renewcommand{\shortauthors}{Daan Brugmans}
+
+%%
+%% The abstract is a short summary of the work to be presented in the
+%% article.
 \begin{abstract}
-    This document is the final report for the Radboud University's Data Engineering course.
-    Every section was written consecutively as a weekly assignment.
-    The report describes the design and construction of a data pipeline.
-    The code for the implementation of the pipeline described here can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24}
+  This document is the final report for the Radboud University's Data Engineering course and its corresponding project.
+  Every section was written consecutively as a weekly assignment.
+  The report describes the design and construction of a data pipeline.
+  The code for the implementation of the pipeline described here can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24}
 \end{abstract}
 
+%%
+%% This command processes the author and affiliation and title
+%% information and builds the first part of the formatted document.
 \maketitle
-% \begin{table}
-%     \centering
-%     \begin{tabular}{cols}
-        
-%     \end{tabular}
-%     \caption{}
-%     \label{tab:}
-% \end{table}
 
-% \begin{figure}
-%     \centering
-%     \includegraphics[width=0.9\textwidth]{}
-%     \caption{}
-%     \label{fig:}
-% \end{figure}
+\section{Introduction}
+For my Data Engineering project, I built the basics of a pipeline that serves data to data scientists working on a beer recommendation system.
+Within the context of this project's use case, this beer recommendation system is to be built into an existing platform where end users engage in the rating of beers that they have tried.
+We want to use this end user data to recommend beers to end users, which we can then sell to them through our platform.
 
-\section{Data \& Project Proposal}
-For the Data Engineering project, I would like to build a pipeline that serves data to data scientists working on a beer recommendation system.
-The pipeline should collect from multiple sources that serve data(sets) of beer and their attributes.
+In design, the pipeline should collect from multiple sources that serve data(sets) of beer and their attributes, and serve this data to the data scientists.
 Examples of attributes that should be served to the data scientists are name, brewery, alcohol by volume (ABV), international bitterness unit (IBU), category/style, textual description, flavor profile, personal ratings, and a timestamp.
-The pipeline should serve two sets of data to the data scientists: a big general dataset containing beer data from varying publicly available sources that can (and should) be updated, and a small dataset of an end user of the beer recommendation system that includes personal ratings of beers the end user has had before.
+The pipeline should serve two sets of data to the data scientists: a big general dataset containing beer data from varying publicly available sources that can (and should) be updated, and a dataset of end users of the platform that includes personal ratings of beers the end user has had before.
+The general dataset then serves as a pool of beers that could potentially be recommended to an end user, and the end user dataset then serves as the basis upon which recommendations are made.
 These datasets will be served tabular.
-The data scientists can then use the ratings of the end user and the data of both datasets to build a system that can recommend beers from the big dataset to the end user's non-specified preferences, which can be extracted from the end user's data using machine learning.
-A realistic use case for such a recommendation system could exist for social media platforms revolving around beer and online retailers of beer that can use the system to increase revenue and beer sales.
 
-% Maybe????
-Due to the scope of the Data Engineering project, I will implement only the parts of the pipeline that are needed to serve the small dataset of an end user.
-Although this requires that I construct a complete and working pipeline, I will move the focus away from data cleaning and joining, for example.
+In practice, in order to contain the scope of this project to what is feasible and realistic, I have implemented only the parts of the pipeline that are needed to serve the dataset end users.
+Though not the complete pipeline described above, this long-thin approach does allow me to showcase all necessary steps for getting the pipeline running.
+For example, the data quality assessment and data wrangling I perform is complete, but is only applied on the dataset of end users.
 
-For the small dataset of an end user, I will provide my own data of beer ratings that I have collected on \citeauthor{untappd}.
+For the dataset of end users, I have provided my own data of beer ratings that I have collected on \citeauthor{untappd}.
+Within the context of the use case, \citeauthor{untappd} can be seen as the platform into which our beer recommendation system will be integrated.
 \citet{untappd} is a social medium where users rate beers they try and share their ratings with friends by registering their rating on the medium ("check-in").
 I participate in \citeauthor{untappd} and have collected a dataset of these check-ins with ratings.
-I have access to an export of my check-in data via a GDPR request.
-This export contains information about a beer's name, category/style, brewery, check-in location, purchasing location, flavor profile experienced by the end user, rating, and timestamp.
+This dataset contains information about a beer's name, category/style, brewery, check-in location, purchasing location, flavor profile experienced by the end user, rating, and timestamp.
 The data will be provided in CSV format and contain almost 400 check-ins, slightly over 300 of which being unique, so while I do not expect for missing data to be a major issue, duplicates will be more prominent.
 
-% For the big dataset containing beers that can be recommended to an end user, I have found multiple data sources of beer attributes.
-% I want to aggregate the data from these sources into a single database of beers. 
-% Because my data sources serve data in varying formats, I expect that the aggregating of my data into a single collection will be a major challenge of the project.
-% For example, I will have to make sure that all data uses the same formats and standards, that there are no duplicates due to beers being present in multiple sources, and that there will likely be missing data due to some data sources not storing certain attributes.
-
-% I want to make use of the following data sources:
-% \begin{itemize}
-%     \item \citet{openbeerdb} is an archive of beer data.
-%     Although it currently serves an older, static dataset, \citeauthor{openbeerdb} is planning on updating this dataset in the future, possibly including regular updates to the data.
-%     The \citeauthor{openbeerdb} data is served as a set of \texttt{.sql} files that will create tables for beer, breweries, categories, and styles (finer granularity categories), and insert them with data.
-%     The resulting SQL database contains most attributes I would want to serve to the data scientists, with the exception of flavor profile.
-%     \item \citet{philipperemy} serves a static collection of beer data scraped from \citet{brewerydb}.
-%     The dataset contains over 30,000 beers stored as JSON files, where every JSON file is a collection of beers.
-%     The records contain almost all the data that I need, plus a lot more that I do not need, and seem quite complete.
-%     The dataset size is ~80MBs.
-    % \item \citet{evanhallmark} provides a dataset of beers, breweries, and beer reviews on Kaggle.
-    % However, from Kaggle's preview, I have already noticed it contains several data quality issues: no documentation, missing data, strings that represent missing data, and the file for the reviews is over 2GBs.
-    % The dataset consists of three CSV files, and the CSV for beer records contains almost 300,000 unique names.
-% \end{itemize}
-
 \section{Data Quality}
-Before wrangling the data, I will talk about the data quality of the various data sources.
-Quantitative measures of data quality were measured using code.
+Before wrangling, I will talk about the data quality of the end user data.
+Quantitative measures of data quality were defined using code.
 A class called the \texttt{DataQualityAssessor} assesses the data's quality using a few metrics.
-A code snippet of this class can be found in figure \ref{fig:code_data_quality_assessor}.
+A code snippet of this class can be found in \ref{sec:dataqualityassessor}.
 This class is used in a Jupyter notebook that allows easy visualizations of data distributions and qualities.
 This notebook can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24/blob/main/code/analysis.ipynb}
 
-\subsection{Untappd}
 The Untappd data contains all of the features I need.
 Most of these features do not have missing data: beer name, brewery name, beer type, ABV, IBU, personal rating, and check-in timestamp have 0\% data missing.
 
@@ -128,19 +133,15 @@ The check-in timestamp is formatted to the standard ISO format, and floats use p
 The dataset is in an unnormalized form.
 
 Although the Untappd data provides a unique ID for each record, for our purposes, that is not the primary key of our data: that would be beer name + brewery name.
-We will assume that a brewery does not make multiple different beers that share the same name.
+We will assume that a brewery does not make multiple different beers that share the exact same name.
 Given this primary key, the Untappd dataset consists of 18\% duplicates.
 This can be fixed during data wrangling: duplicates are different check-ins of the same beer.
 Features like beer name and brewery will be consistent across duplicates.
 For some features, we must apply some transformation. 
 For example, personal ratings can be averaged, and flavor profiles of all check-ins can be merged into one list.
 
-% \subsection{OpenBeerDB}
-
-% \subsection{BreweryDB}
-
 \section{Data Wrangling}
-Preferably, our pipeline should serve two different sets of data: the small personal dataset with a user's ratings, and the big general dataset to query beers from.
+The pipeline should serve two different sets of data, the general dataset and the end users dataset with ratings.
 We will store these datasets as parquet files.
 These datasets should share the same features, with the exception of the personal rating and the check-in timestamp for the personal dataset.
 This list of features should be as follows:
@@ -159,12 +160,18 @@ Most of these features already fit this structure.
 However, flavor profiles pose a problem, as they are currently stored as a list of varying size for every record in the \citeauthor{untappd} dataset.
 My proposed solution is to wrangle the flavors into binary features: every flavor found in any flavor profile becomes a feature.
 If a beer's flavor profile contains that flavor, the feature's value is 1, otherwise it is 0.
-The main problem with this approach is that these flavor features are only stored in the \citeauthor{untappd} data.
-If we want to use the features for the general dataset, we will have to extract that knowledge somehow.
-For example, it could be collected from the \citeauthor{untappd} website, or the data scientists could use NLP techniques on a beer's name and description to fill in the features.
-Regardless, making full use of the flavor features will require additional work.
+If we want to use these binary features for the general dataset as well, then we will have to extract that knowledge somehow, since individually experienced flavor profiles may not reflect commonly experienced flavors of the beer.
+This can be solved by using the top 5 most commonly selected flavors on \citeauthor{untappd} for the general dataset.
 
 The \citeauthor{untappd} dataset only has one column about beer category, but it actually contains both beer category and beer type: beer type is the full value, while beer category is the substring prior to the "-" (if it is present).
+We thus parse this column into two to get a category feature and a type feature.
+
+Since duplicates in the end user dataset represent beers that an end user has rated multiple times, duplicates should be handled in a way that fits the use case.
+Duplicates shouldn't be ignored, since all ratings are valuable towards determining an end user's preferences, but we do not want to serve data of multiple ratings of the same beer by the same user.
+Our strategy is to merge multiple ratings from the same person for the same beer into one, taking the mean of all rating scores for a final rating.
+We could even weigh this mean rating by the timestamp, since we assume that recent check-ins are more important than older check-ins.
+However, for now, we simply calculate the mean rating without weighting.
+When creating the flavor profile features, we will also look at all duplicate ratings, since different ratings may contain different flavors experienced by an end user.
 
 The \citeauthor{untappd} data source is currently represented in a tabular form and is stored in a CSV file.
 I will wrangle it into the desired representation using Python and Pandas, applying further operations on dataframes.
@@ -188,9 +195,9 @@ Since all data is stored in a single CSV of manageable size, I can perform this 
 
 \section{Data Serving}
 Serving of the data should be kept simple and designed to fit the stakeholders' needs.
-Since these stakeholders are data scientists that want to have full access to all data, and since the data should not be accessible to the public, an API does not seem to be a good fit.
-Currently, there is also no business logic that should be implemented, and the dataset size is small-scale and very manageable, so a QL API seems like an overengineered design for the current use case.
-Since the data is personalized in nature, we should serve it with precautions and with as little data that could trace back to a person's identity.
+Since these stakeholders are data scientists that want to have full access to all data, and since the data is not to be accessed publicly, an API does not seem to be a good fit.
+Currently, there is also no business logic that should be implemented when serving the data, and the dataset size is small-scale and very manageable, so a QL API seems like an overengineered design for the current use case.
+Since the dataset contains data that could be traced back to specific users, we should serve it with security precautions and refrain from storing information about end users that we do not need.
 
 A single parquet file should fit the data scientists' needs and would be preferred over CSV, but if the data scientists cannot perform their work with a parquet file, the data can be served as a CSV instead.
 Assuming that the business can and is willing to cover the costs, serving the data using AWS S3 would be preferred over self-hosted alternatives, for the sake of the data lifecycle and infrastructure management.
@@ -245,18 +252,68 @@ Since we are serving parquet files, we can opt for a "Parquet S3 Zoo" strategy, 
 We can use the DeltaLake or Iceberg framework as a tool to assist us in this in this strategy.
 
 \bibliographystyle{ACM-Reference-Format}
-\def\bibfont{\small} % comment this line for a smaller fontsize
-\bibliography{refs.bib} 
+\bibliography{refs.bib}
 
 \onecolumn
 \appendix
-\section{Appendix: Code Snippets}
 
-\begin{figure*}[h]
-    \centering
-    \includegraphics[width=0.9\textwidth]{code_data_quality_assessor.png}
-    \caption{A code snippet for the \href{https://github.com/daanbrugmans/ru-data-engineering-23-24/blob/main/code/data_quality/data_quality_assessor.py}{Data Quality Assessor}.}
-    \label{fig:code_data_quality_assessor}
-\end{figure*}
+\section{Code: Data\_Quality\_Assessor}
+\label{sec:dataqualityassessor}
+% You can use the appendix to include longer code snippets~\cite{raasveldt:2019} that do not fit or belong in the main article text. Use code listings, like the ones provided below.
+
+% \begin{lstlisting}[language=Python]
+% import duckdb
+% # your code here
+% \end{lstlisting}
+
+% Or for another language, like SQL:
+
+% \begin{lstlisting}[language=SQL]
+% SELECT COUNT(*)
+% WHERE col1 IS NULL
+% \end{lstlisting}
+
+\begin{lstlisting}[language=Python]
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+class DataQualityAssessor:
+    def __init__(self, dataset: pd.DataFrame) -> None:
+        self.dataset = dataset
+        
+    def get_null_rates(self) -> pd.DataFrame:
+        df_is_null = self.dataset.copy().isna()
+        null_rates = {}
+        
+        for column_name in df_is_null.columns:
+            row_count = df_is_null[column_name].size
+            null_row_count = df_is_null[df_is_null[column_name] == True][column_name].size
+            
+            null_rates[column_name] = round(null_row_count / row_count, 2)
+            
+        null_rates_df = pd.DataFrame([null_rates]).T
+        null_rates_df.columns = ["NULL Rate"]
+            
+        return null_rates_df
+    
+    def get_duplicate_rate(self, primary_key: list[str]) -> float:
+        row_count = len(self.dataset)
+        row_count_without_duplicates = len(self.dataset.drop_duplicates(subset=primary_key))
+        
+        return round(1 -  row_count_without_duplicates / row_count, 2)
+    
+    def draw_boxplots(self) -> None:
+        sns.boxplot(data=pd.melt(self.dataset.select_dtypes(include="number")), x="value", y="variable")
+        plt.xscale("log")
+        
+    def draw_categorical_feature(self, feature_name: str) -> None:
+        sns.countplot(data=self.dataset, y=feature_name, order=self.dataset[feature_name].value_counts().index)
+        
+    def draw_continuous_feature(self, feature_name: str) -> None:
+        sns.histplot(data=self.dataset, x=feature_name)
+\end{lstlisting}
+
+\section{Code for Data Wrangling}
 
 \end{document}
