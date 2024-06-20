@@ -7,7 +7,7 @@ import pandas as pd
 class DataWrangler:
     def __init__(self, dataset: BeerDataset) -> None:
         self.dataset = dataset
-        self.dataset.df = self.dataset.df[["beer_name", "brewery_name", "beer_type", "beer_abv", "beer_ibu", "comment", "flavor_profiles", "rating_score", "created_at"]]
+        self.dataset.df = self.dataset.df[["beer_name", "brewery_name", "beer_type", "beer_abv", "beer_ibu", "comment", "flavor_profiles", "rating_score"]]
         self.dataset.df = self.dataset.df.rename(columns={
             "beer_name": "beer_name",
             "brewery_name": "brewery_name",
@@ -16,15 +16,18 @@ class DataWrangler:
             "beer_ibu": "ibu",
             "comment": "description",
             "flavor_profiles": "flavor_profile",
-            "rating_score": "rating",
-            "created_at": "timestamp"
+            "rating_score": "rating"
         })
     
-    def handle_duplicates(self):
-        if self.dataset.has_ratings:
-            pass #TODO: Merge ratings and use most recent timestamp
+    def handle_duplicates(self):       
+        grouped_df = self.dataset.df.groupby(by=["beer_name", "brewery_name", "beer_type", "abv", "ibu"], as_index=False)
+        grouped_df = grouped_df.agg({
+            "description": lambda x: pd.NA if pd.isna(x.all()) else ("; ".join(x.dropna().to_list()).replace("\n", ". ") if ("".join(x.dropna().to_list()) != "") else pd.NA),
+            "rating": "mean",
+            "flavor_profile": lambda x: pd.NA if pd.isna(x.all()) else ",".join(x.dropna().to_list())
+        })
         
-        pass
+        self.dataset.df = grouped_df
     
     def generate_flavor_features(self):
         found_flavors = set()

@@ -76,7 +76,7 @@
   This document is the final report for the Radboud University's Data Engineering course and its corresponding project.
   Every section was written consecutively as a weekly assignment.
   The report describes the design and construction of a data pipeline.
-  The code for the implementation of the pipeline described here can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24}
+  The code for the implementation of the pipeline described here can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24/tree/main/code}
 \end{abstract}
 
 %%
@@ -110,7 +110,7 @@ The data will be provided in CSV format and contain almost 400 check-ins, slight
 Before wrangling, I will talk about the data quality of the end user data.
 Quantitative measures of data quality were defined using code.
 A class called the \texttt{DataQualityAssessor} assesses the data's quality using a few metrics.
-A code snippet of this class can be found in \ref{sec:dataqualityassessor}.
+A code snippet of this class can be found in appendix \ref{sec:dataqualityassessor}.
 This class is used in a Jupyter notebook that allows easy visualizations of data distributions and qualities.
 This notebook can be found at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24/blob/main/code/analysis.ipynb}
 
@@ -143,7 +143,7 @@ For example, personal ratings can be averaged, and flavor profiles of all check-
 \section{Data Wrangling}
 The pipeline should serve two different sets of data, the general dataset and the end users dataset with ratings.
 We will store these datasets as parquet files.
-These datasets should share the same features, with the exception of the personal rating and the check-in timestamp for the personal dataset.
+These datasets should share the same features, with the exception of the personal rating for the personal dataset.
 This list of features should be as follows:
 \begin{itemize}
     \item Beer Name
@@ -171,27 +171,27 @@ Duplicates shouldn't be ignored, since all ratings are valuable towards determin
 Our strategy is to merge multiple ratings from the same person for the same beer into one, taking the mean of all rating scores for a final rating.
 We could even weigh this mean rating by the timestamp, since we assume that recent check-ins are more important than older check-ins.
 However, for now, we simply calculate the mean rating without weighting.
-When creating the flavor profile features, we will also look at all duplicate ratings, since different ratings may contain different flavors experienced by an end user.
+When creating the flavor profile features, we will also look at duplicates, since different ratings may contain different flavors experienced by an end user.
 
 The \citeauthor{untappd} data source is currently represented in a tabular form and is stored in a CSV file.
-I will wrangle it into the desired representation using Python and Pandas, applying further operations on dataframes.
+I wrangle it into the desired representation using Python and Pandas, applying further operations on dataframes.
 Since all data is stored in a single CSV of manageable size, I can perform this process in bulk.
-% All data sources are currently represented in a tabular form (\citeauthor{untappd}, \citeauthor{openbeerdb}) or a semi-structured form (\citeauthor{philipperemy}).
-% The semi-structured data is represented using multiple JSON files of the same shape.
-% I will wrangle it into a tabular format using Python and Pandas, applying further operations on dataframes.
-% Since \citeauthor{openbeerdb}'s data is served as a set of SQL files that create tables with records to query, I will use SQL to get the features that I need, and wrangle those features using Python.
-% I can perform this process in bulk.
 
-% I want to join the datasets by \citet{openbeerdb} and \citet{philipperemy}, assuming a primary key of Beer Name + Brewery Name.
-% However, this is not possible, because \citeauthor{philipperemy}'s dataset does not contain information about a beer's brewery.
-% Although it would be possible to create a program that would try to scrape brewery information from \citeauthor{untappd}, for now, I will refrain from building such a program due to project scope constraints.
-% Such a scraper could be worth the effort, though, since I could use it to fill in missing data, and standardize existing data to \citeauthor{untappd}'s standards.
-% For now, my approach in joining this data shall be that I remove records from \citeauthor{philipperemy} with duplicate names, then join on Beer Name.
+I have implemented the data wrangling as described above in a class called \texttt{DataWrangler}, whose full code can be found in appendix \ref{sec:datawrangler}.
+I have defined four functions that individually perform one of the wrangling steps described above:
+\begin{enumerate}
+  \item \texttt{handle\_duplicates} handles duplicate records from the dataset as described above.
+  This means that multiple ratings are merged into one.
+  To that end, we calculate the mean rating score over all duplicate ratings, we concatenate all descriptions into one with a ";" as a delimiter, and we concatenate the variable length flavor profile lists so that we can later generate the binary flavor features with flavors experienced across multiple ratings.
+  \item \texttt{parse\_category\_and\_type\_features} takes the existing beer type feature from \citeauthor{untappd} and splits it into two: the general beer category and the specific beer type.
+  \item \texttt{generate\_flavor\_features} generates the binary flavor features.
+  If a user experienced a flavor for any rating of a beer, then that flavor feature is set to true, otherwise it is false.
+  \item \texttt{save\_as\_parquet} saves the dataset as a parquet file.
+\end{enumerate}
 
-% Once the data for the general dataset has been joined, I will have to apply additional operations, because the different data sources have different possible sets of values for the same feature.
-% The \citeauthor{untappd} dataset only has one column about beer category, but it actually contains both beer category and beer type: beer type is the full value, while beer category is the substring prior to the "-" (if it is present).
-% The other datasets already have two different features for beer category and type, but sometimes use different names for the same category/type.
-% Changing these values to be the same as the one in the personal dataset would improve data quality.
+I designed my data wrangling process in a way where every individual wrangling step is a method call.
+This way, we can easily alter the order of the data wrangling steps, and decide to include or exclude certain steps.
+An example of how the wrangled dataset which is served to the data scientists looks can be found in the notebook at the following URL: \url{https://github.com/daanbrugmans/ru-data-engineering-23-24/blob/main/code/analysis.ipynb}.
 
 \section{Data Serving}
 Serving of the data should be kept simple and designed to fit the stakeholders' needs.
@@ -314,6 +314,92 @@ class DataQualityAssessor:
         sns.histplot(data=self.dataset, x=feature_name)
 \end{lstlisting}
 
-\section{Code for Data Wrangling}
+\section{Code: Data\_Wrangler}
+\label{sec:datawrangler}
+
+\begin{lstlisting}[language=Python]
+from datasets.beer_dataset import BeerDataset
+
+from pathlib import Path
+
+import pandas as pd
+
+class DataWrangler:
+    def __init__(self, dataset: BeerDataset) -> None:
+        self.dataset = dataset
+        self.dataset.df = self.dataset.df[["beer_name", "brewery_name", "beer_type", "beer_abv", "beer_ibu", "comment", "flavor_profiles", "rating_score"]]
+        self.dataset.df = self.dataset.df.rename(columns={
+            "beer_name": "beer_name",
+            "brewery_name": "brewery_name",
+            "beer_type": "beer_type",
+            "beer_abv": "abv",
+            "beer_ibu": "ibu",
+            "comment": "description",
+            "flavor_profiles": "flavor_profile",
+            "rating_score": "rating"
+        })
+    
+    def handle_duplicates(self):       
+        grouped_df = self.dataset.df.groupby(by=["beer_name", "brewery_name", "beer_type", "abv", "ibu"], as_index=False)
+        grouped_df = grouped_df.agg({
+            "description": lambda x: pd.NA if pd.isna(x.all()) else ("; ".join(x.dropna().to_list()).replace("\n", ". ") if ("".join(x.dropna().to_list()) != "") else pd.NA),
+            "rating": "mean",
+            "flavor_profile": lambda x: pd.NA if pd.isna(x.all()) else ",".join(x.dropna().to_list())
+        })
+        
+        self.dataset.df = grouped_df
+    
+    def generate_flavor_features(self):
+        found_flavors = set()
+        
+        for _, row in self.dataset.df.iterrows():
+            if pd.isna(row.flavor_profile):
+                continue
+            
+            beer_flavor_profile = set(row.flavor_profile.split(","))
+            found_flavors = found_flavors.union(beer_flavor_profile)
+            
+        found_flavors = sorted(found_flavors)
+            
+        for flavor in found_flavors:
+            self.dataset.df[flavor] = False
+            
+        for index, (_, row) in enumerate(self.dataset.df.iterrows()):
+            if pd.isna(row.flavor_profile):
+                continue
+            
+            beer_flavor_profile = row.flavor_profile.split(",")
+            
+            for flavor in beer_flavor_profile:
+                self.dataset.df.loc[index, flavor] = True
+            
+        self.dataset.df = self.dataset.df.drop(["flavor_profile"], axis=1)
+    
+    def parse_category_and_type_features(self):
+        self.dataset.df["beer_category"] = ""
+        self.dataset.df.insert(2, "beer_category", self.dataset.df.pop("beer_category"))
+        
+        for index, (_, row) in enumerate(self.dataset.df.iterrows()):
+            if " - " in row.beer_type:
+                category_name = row.beer_type.split(" - ")[0].strip()
+                type_name = row.beer_type.split(" - ")[1].strip()
+                
+                self.dataset.df.loc[index, "beer_category"] = category_name
+                self.dataset.df.loc[index, "beer_type"] = type_name + " " + category_name
+            else:
+                self.dataset.df.loc[index, "beer_category"] = row.beer_type
+    
+    def save_as_parquet(self, filename: str):
+        if str(Path.cwd()).endswith("code"):
+            cwd = Path.cwd().parents[0]
+        else:
+            cwd = Path.cwd()
+        
+        path_to_parquet_file = Path.joinpath(cwd, "data", "wrangled", f"{filename}.parquet")
+        
+        self.dataset.df.to_parquet(path_to_parquet_file)
+        
+        print(f"Saved dataset as parquet file to {path_to_parquet_file}")
+\end{lstlisting}
 
 \end{document}
