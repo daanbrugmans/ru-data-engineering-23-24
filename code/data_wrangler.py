@@ -2,7 +2,7 @@ from datasets.beer_dataset import BeerDataset
 
 from pathlib import Path
 
-import numpy as np
+import pandas as pd
 
 class DataWrangler:
     def __init__(self, dataset: BeerDataset) -> None:
@@ -27,7 +27,30 @@ class DataWrangler:
         pass
     
     def generate_flavor_features(self):
-        pass
+        found_flavors = set()
+        
+        for _, row in self.dataset.df.iterrows():
+            if pd.isna(row.flavor_profile):
+                continue
+            
+            beer_flavor_profile = set(row.flavor_profile.split(","))
+            found_flavors = found_flavors.union(beer_flavor_profile)
+            
+        found_flavors = sorted(found_flavors)
+            
+        for flavor in found_flavors:
+            self.dataset.df[flavor] = False
+            
+        for index, (_, row) in enumerate(self.dataset.df.iterrows()):
+            if pd.isna(row.flavor_profile):
+                continue
+            
+            beer_flavor_profile = row.flavor_profile.split(",")
+            
+            for flavor in beer_flavor_profile:
+                self.dataset.df.loc[index, flavor] = True
+            
+        self.dataset.df = self.dataset.df.drop(["flavor_profile"], axis=1)
     
     def parse_category_and_type_features(self):
         self.dataset.df["beer_category"] = ""
