@@ -29,7 +29,7 @@ class DataQualityAssessor:
     
     def draw_boxplots(self) -> None:
         sns.boxplot(data=pd.melt(self.dataset.select_dtypes(include="number")), x="value", y="variable")
-        plt.xscale("log")
+        # plt.xscale("log")
         
     def draw_categorical_feature(self, feature_name: str) -> None:
         sns.countplot(data=self.dataset, y=feature_name, order=self.dataset[feature_name].value_counts().index)
